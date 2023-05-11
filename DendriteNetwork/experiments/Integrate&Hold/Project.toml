@@ -1,0 +1,17 @@
+[deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+DendriteNetwork = "752fb848-3946-448f-b4f4-8e5c480aad69"
+DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+IfElse = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
+NetworkDynamics = "22e9dc34-2a0d-11e9-0de0-8588d035468b"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[extras]
+CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"

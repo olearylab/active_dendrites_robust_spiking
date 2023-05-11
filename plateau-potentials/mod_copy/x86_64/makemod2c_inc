@@ -1,0 +1,273 @@
+
+./CaDynamics_E2.c: ../CaDynamics_E2.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) CaDynamics_E2.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./CaDynamics_E2.o: ./CaDynamics_E2.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./CaT.c: ../CaT.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) CaT.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./CaT.o: ./CaT.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Ca_HVA.c: ../Ca_HVA.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) Ca_HVA.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./Ca_HVA.o: ./Ca_HVA.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Ca_LVAst.c: ../Ca_LVAst.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) Ca_LVAst.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./Ca_LVAst.o: ./Ca_LVAst.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cad.c: ../Cad.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) Cad.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./Cad.o: ./Cad.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./IL.c: ../IL.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) IL.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./IL.o: ./IL.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Ih.c: ../Ih.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) Ih.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./Ih.o: ./Ih.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Im.c: ../Im.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) Im.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./Im.o: ./Im.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./K_Pst.c: ../K_Pst.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) K_Pst.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./K_Pst.o: ./K_Pst.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./K_Tst.c: ../K_Tst.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) K_Tst.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./K_Tst.o: ./K_Tst.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./NMDA.c: ../NMDA.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) NMDA.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./NMDA.o: ./NMDA.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./NMDAeee.c: ../NMDAeee.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) NMDAeee.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./NMDAeee.o: ./NMDAeee.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./NMDAmajor.c: ../NMDAmajor.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) NMDAmajor.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./NMDAmajor.o: ./NMDAmajor.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./NaTa_t.c: ../NaTa_t.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) NaTa_t.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./NaTa_t.o: ./NaTa_t.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./NaTs2_t.c: ../NaTs2_t.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) NaTs2_t.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./NaTs2_t.o: ./NaTs2_t.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Nap_Et2.c: ../Nap_Et2.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) Nap_Et2.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./Nap_Et2.o: ./Nap_Et2.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./PlateauConductance.c: ../PlateauConductance.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) PlateauConductance.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./PlateauConductance.o: ./PlateauConductance.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./SK_E2.c: ../SK_E2.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) SK_E2.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./SK_E2.o: ./SK_E2.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./SKv3_1.c: ../SKv3_1.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) SKv3_1.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./SKv3_1.o: ./SKv3_1.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./ampa.c: ../ampa.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) ampa.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./ampa.o: ./ampa.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./ca.c: ../ca.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) ca.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./ca.o: ./ca.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./epsp.c: ../epsp.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) epsp.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./epsp.o: ./epsp.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./gabaa.c: ../gabaa.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) gabaa.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./gabaa.o: ./gabaa.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./gabab.c: ../gabab.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) gabab.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./gabab.o: ./gabab.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./glutamate.c: ../glutamate.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) glutamate.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./glutamate.o: ./glutamate.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./h_kole.c: ../h_kole.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) h_kole.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./h_kole.o: ./h_kole.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./h_migliore.c: ../h_migliore.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) h_migliore.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./h_migliore.o: ./h_migliore.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./kBK.c: ../kBK.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) kBK.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./kBK.o: ./kBK.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./kadist.c: ../kadist.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) kadist.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./kadist.o: ./kadist.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./kaprox.c: ../kaprox.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) kaprox.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./kaprox.o: ./kaprox.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./kv.c: ../kv.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) kv.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./kv.o: ./kv.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./na.c: ../na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) na.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./na.o: ./na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./vecstim.c: ../vecstim.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) vecstim.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./vecstim.o: ./vecstim.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./vmax.c: ../vmax.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\n"
+	(cd ".."; MODLUNIT=$(NRNUNITS) $(NOCMODL) vmax.mod -o "/Users/tsjb2/Dropbox (Cambridge University)/GitHub/Network-Rhythms/mrule/plateau-potentials/mod/x86_64")
+
+./vmax.o: ./vmax.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+

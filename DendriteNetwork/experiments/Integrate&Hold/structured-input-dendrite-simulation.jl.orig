@@ -1,0 +1,916 @@
+### A Pluto.jl notebook ###
+<<<<<<< Updated upstream
+# v0.18.4
+=======
+# v0.19.22
+>>>>>>> Stashed changes
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ 208e9048-b417-11ec-20b8-e5d2918eb4e8
+begin
+	using Pkg
+	Pkg.activate(".")
+
+	import Plots
+	using PlutoUI
+	using NetworkDynamics, OrdinaryDiffEq, Graphs, SparseArrays, LinearAlgebra, Statistics, Flux, Zygote, BSON, ColorSchemes, CairoMakie, Downloads
+	using Flux: onecold, onehot
+end
+
+# ╔═╡ b16c7066-00fd-479b-a1c8-8ef471fe47c0
+begin
+	using Revise
+	using DendriteNetwork
+end
+
+# ╔═╡ 8f2283a7-40de-468e-b265-160494c959d1
+PlutoUI.TableOfContents(title="Dendrite network doing something 🌲")
+
+# ╔═╡ 9760057e-d4be-4873-8afd-4aa6ba4ae24c
+md"""
+## Mini Network
+"""
+
+# ╔═╡ 2a58d6f6-298d-46f1-a8af-471a4fed7dfd
+g_mini = let
+	g_mini = SimpleGraph(11)
+
+	# Synaptic connections
+	add_edge!(g_mini, 1, 3)
+	add_edge!(g_mini, 1, 5)
+	add_edge!(g_mini, 1, 7)
+
+	add_edge!(g_mini, 2, 4)
+	add_edge!(g_mini, 2, 5)
+	add_edge!(g_mini, 2, 8)
+
+	# Electric couplings
+	add_edge!(g_mini, 3, 9)
+	add_edge!(g_mini, 4, 9)
+
+	add_edge!(g_mini, 5, 10)
+	add_edge!(g_mini, 6, 10)
+
+	add_edge!(g_mini, 7, 11)
+	add_edge!(g_mini, 8, 11)
+
+	g_mini
+end
+
+# ╔═╡ 5bd69110-b1f3-4c9f-8751-23951d131c0c
+vertexlist_mini = let
+	t1, t2 = 1., 10.
+	vertices = [input_soma!(t -> pulse(t, t1)), input_soma!(t -> pulse(t, t2))]
+
+	for i in 1:6
+		push!(vertices, synapse!)
+	end
+	for i in 1:3
+		push!(vertices, soma!)
+	end
+	vertices
+end
+
+# ╔═╡ 00f7f929-42d0-4a5a-9932-535c50418716
+edgelist_mini = let
+	miniedgelist = StaticEdge[]
+	sources = Symbol.([vertexlist_mini[src(edge)].f for edge in edges(g_mini)])
+	
+	for source in sources
+		if source == :input_soma_function!
+			push!(miniedgelist, soma_output!)
+		elseif source == :synapse_function!
+			push!(miniedgelist, electric_coupling!)
+		end
+	end
+	miniedgelist
+end
+
+# ╔═╡ 38a878c3-f968-4780-841a-0127c29921f1
+mini_network = network_dynamics(vertexlist_mini, edgelist_mini, g_mini)
+
+# ╔═╡ fc89918c-6c57-45c6-9e0f-2d0293e991d2
+mini_vertexparams = let
+    τ_m = 1. # Membrane time constant of soma
+    τ_s = 1. # Postsynaptic conductance time constant
+    τ_syn = 1. # Membrane time constant of synapse
+
+    # The array that will contain one array of parameters for each vertex
+    vertex_p = []
+    for i in 1:length(vertexlist_mini)
+        vertex = vertexlist_mini[i]
+        vertex_function_name = Symbol(vertex.f)
+        if vertex_function_name == :input_soma_function!
+            # Push the array of parameters that will be passed to input soma with vertexnumber i
+            push!(vertex_p, [τ_m, τ_s])
+        elseif vertex_function_name == :soma_function!
+            push!(vertex_p, [τ_m, τ_s])
+        elseif vertex_function_name == :synapse_function!
+            # Push the array of parameters that will be passed to synapse with vertexnumber i
+            push!(vertex_p, [τ_syn])
+        else
+            error("A vertex was encountered to which no parameters will be pushed.
+            The vertex function is $vertex_function_name.")
+        end
+    end
+    vertex_p
+end
+
+# ╔═╡ 959f9c7d-86d4-443b-ac7b-4d03b9333e59
+mini_edgeparams = let
+	mini_weights = [10. for i in 1:length(edgelist_mini)]
+    # The array that will contain one array of parameterse for each edge
+    edge_p = []
+    for (edge, w) in zip(edges(g_mini), mini_weights)
+        vertex_source_function_name = Symbol(vertexlist_mini[src(edge)].f)
+        # If source of edge is an input soma:
+        if vertex_source_function_name == :input_soma_function!
+            push!(edge_p, [10*w]) # ḡ_E, E_E of excitatory (E) synapse
+        elseif vertex_source_function_name == :soma_function!
+            push!(edge_p, [w]) # ḡ_E, E_E of excitatory (E) synapse
+        elseif vertex_source_function_name == :synapse_function!
+            push!(edge_p, [w]) # R (resistance) of synapse-soma current
+        else
+            error("You did not specify an edge parameter set for each source vertex.
+            Got $vertex_source_function_name.")
+        end
+    end
+    edge_p
+end
+
+# ╔═╡ ae73a4b7-99df-4f36-98d3-6240976b2a63
+mini_parameters = (mini_vertexparams, mini_edgeparams)
+
+# ╔═╡ 9c6c4ebb-457e-423e-a11b-e983ddaa0590
+mini_x0 = let
+    ICs = Vector{Float64}(undef, length(syms_containing(mini_network, "_")))
+    # Initial conditions for soma variables:
+    ICs[idx_containing(mini_network, :V_soma)] .= 0.0 # ICs for V_soma's
+    ICs[idx_containing(mini_network, :s_soma)] .= 0.0 # ICs for s_soma's
+    ICs[idx_containing(mini_network, :g_r_soma)] .= 0.0 # ICs for g_r_soma's
+	ICs[idx_containing(mini_network, :T_soma)] .= 0.0 # ICs for g_r_soma's
+    # Initial conditions for synapse variables:
+    ICs[idx_containing(mini_network, :V_syn)] .= 0.0 # ICs for V_synapse
+    ICs[idx_containing(mini_network, :T_syn)] .= 0.0 # ICs for T_synapse
+    ICs
+end
+
+# ╔═╡ 4c29cf96-87c2-4291-a314-9a7308f2ac96
+mini_tspan = (0.0, 12.0)
+
+# ╔═╡ 9ae286be-2c0f-46a3-a227-a635e78c6032
+mini_prob = ODEProblem(mini_network, mini_x0, mini_tspan, mini_parameters);
+
+# ╔═╡ a8722be9-9c75-40a6-a4f7-97b5aa50c283
+begin
+	# Callback for spiking of somas:
+	mini_spiking_callback = spiking_cb(mini_network, :soma; θ = 1.)
+	# Callbacks for maintaining plateau of synapses:
+	mini_plateau_callback = plateau_cb(mini_network, :syn; θ = 1., T = 10.)
+
+	mini_briefplateau_callback = plateau_cb(mini_network, :syn; θ = 1., T = 1.)
+end
+
+# ╔═╡ 4b84537d-88e7-4d63-9221-91be9625b091
+begin
+	test_mini_spike_cb = test_spiking_cb(mini_network, :soma; θ = 1.)
+	test_mini_plateau_cb = test_plateau_cb(mini_network, :syn; θ = 1., T = 10.)
+end
+
+# ╔═╡ 344cd42b-04fe-4b8c-902f-fb39c15c8f07
+mini_sol = solve(mini_prob, Tsit5(); 
+        callback = CallbackSet(mini_spiking_callback, mini_plateau_callback)
+);
+
+# ╔═╡ 49c12e95-90b4-4173-b779-28b4d330efe4
+
+
+# ╔═╡ a986619a-23b0-4387-b3e9-6935a1d1bcb3
+test_mini_sol = solve(mini_prob, Tsit5(); 
+        callback = CallbackSet(test_mini_spike_cb, test_mini_plateau_cb)
+);
+
+# ╔═╡ a32a1f57-e309-41ff-83a3-5033534eb147
+mini_sol_noplateau = solve(mini_prob, Tsit5(); 
+        callback = CallbackSet(mini_spiking_callback, mini_briefplateau_callback)
+);
+
+# ╔═╡ 496b9f6e-16a4-49ac-a101-316643540563
+mini_vertexnumbers = [1:2, 3:8, 9:11]
+
+# ╔═╡ bd88fa84-8a5a-41dc-89d6-a69d8761234c
+mini_V_variables = [[filter_variables(syms, :V) for syms in layer_symbols(mini_vertexnumbers[i], mini_network)] for i in 1:length(mini_vertexnumbers)]
+
+# ╔═╡ 33c9c2b6-9868-45e1-a1ec-ff908d4b6c33
+mini_layer_outputs = [spike_finder(mini_network, mini_sol, V_syms; threshold=.9) for V_syms in mini_V_variables]
+
+# ╔═╡ ddbd3a49-fae9-468d-a8f1-3dc8fb11bca2
+mini_layer_noplateau_outputs = [spike_finder(mini_network, mini_sol_noplateau, V_syms; threshold=.9) for V_syms in mini_V_variables]
+
+# ╔═╡ b1b5dd8a-1a11-4a01-b49a-976c64b8a4e9
+# Contains a list of plots for each layer, which is in turn a list of plots for each variable
+# Variables are listed as V, s, g_r for the somas; V, T for the synapses
+# E.g. layer_plots[1][1] will be the plots of layer 1, variables 1 (i.e. the V's of the input soma's)
+mini_layer_plots = let
+	plotlist = []
+	for layernum in 1:length(mini_vertexnumbers)
+	    # If layer of somas: V, s, g_r plots, if synapses: V, T plots
+	    singlelayer_plots = layernum ∈ [2, 4] ? [Plots.plot(), Plots.plot()] : [Plots.plot(), Plots.plot(), Plots.plot(), Plots.plot()]
+	    for symbol_list in layer_symbols(mini_vertexnumbers[layernum], mini_network)
+	        for i in 1:length(symbol_list)
+	            Plots.plot!(singlelayer_plots[i], mini_sol.t, transpose(mini_sol[idx_of_symbol(mini_network, symbol_list[i]), :]))
+	        end
+	    end
+	    push!(plotlist, singlelayer_plots)
+	end
+	plotlist
+end
+
+# ╔═╡ c4efbc74-13c8-472c-9921-127acb527819
+mini_layer_plots[2][1]
+
+# ╔═╡ a9496dd8-ddcb-47f6-8b4a-2dc824fda77c
+# Contains a list of plots for each layer, which is in turn a list of plots for each variable
+# Variables are listed as V, s, g_r for the somas; V, T for the synapses
+# E.g. layer_plots[1][1] will be the plots of layer 1, variables 1 (i.e. the V's of the input soma's)
+test_mini_layer_plots = let
+	plotlist = []
+	for layernum in 1:length(mini_vertexnumbers)
+	    # If layer of somas: V, s, g_r plots, if synapses: V, T plots
+	    singlelayer_plots = layernum ∈ [2, 4] ? [Plots.plot(), Plots.plot()] : [Plots.plot(), Plots.plot(), Plots.plot(), Plots.plot()]
+	    for symbol_list in layer_symbols(mini_vertexnumbers[layernum], mini_network)
+	        for i in 1:length(symbol_list)
+	            Plots.plot!(singlelayer_plots[i], test_mini_sol.t, transpose(test_mini_sol[idx_of_symbol(mini_network, symbol_list[i]), :]))
+	        end
+	    end
+	    push!(plotlist, singlelayer_plots)
+	end
+	plotlist
+end
+
+# ╔═╡ 387c16d8-c625-4b6b-9e1f-b6a11379d5e8
+test_mini_layer_plots[2][1]
+
+# ╔═╡ 73006ac2-13be-4eed-9f53-d09d9f67ae51
+mini_raster = let
+    fig = Figure(resolution = (510, 300), 
+		grid = false, minorgrid=false)
+	
+	ax1 = Axis(fig[1, 1],
+		xlabel = "Time (ms)",
+		ylabel = "Neuron #",
+		xgridvisible = false, ygridvisible = false,
+		yticklabelsize = 12)
+    xlims!(ax1, mini_tspan)
+	ylims!(ax1, (0., 12))
+	ax1.yticks = collect(0:mini_vertexnumbers[end][end])
+
+	colors = cgrad(:Dark2_5, 5, categorical = true)
+
+    for (i, spikedict) in enumerate(mini_layer_noplateau_outputs)
+        for (neuronsymbol, spiketimes) in spikedict
+            for spiketime in spiketimes
+                scatter!(ax1, [spiketime], [number_from_symbol(neuronsymbol)],
+				color = colors[i],
+				label = i,
+				marker = :rect,
+				markersize = 12,
+				strokewidth = .2)
+            end
+        end
+    end
+	
+	labels = vcat(
+		["Inputs"],
+		["Dendrites"],
+		["Outputs"]
+	)
+	
+	ax2 = Axis(fig[1, 2],
+		xlabel = "Time (ms)",
+		xgridvisible = false, ygridvisible = false,
+		yticklabelsize = 12)
+    xlims!(ax2, mini_tspan)
+	ylims!(ax2, (0., 12))
+	ax2.yticks = collect(0:mini_vertexnumbers[end][end])
+
+	for (i, spikedict) in enumerate(mini_layer_outputs)
+        for (neuronsymbol, spiketimes) in spikedict
+            for spiketime in spiketimes
+                scatter!(ax2, [spiketime], [number_from_symbol(neuronsymbol)],
+				color = colors[i],
+				label = labels[i],
+				marker = :rect,
+				markersize = 12,
+				strokewidth = .2)
+            end
+        end
+    end
+
+	labels = vcat(
+		["Inputs" for i in 1:2],
+		["Dendrites" for i in 1:6],
+		["Outputs" for i in 1:2]
+	)
+	fig[1,3] = Legend(fig, ax2; merge = true, framevisible = false)
+	
+    fig
+end
+
+# ╔═╡ 203d730d-c2d5-468e-82cd-485f22111079
+md"""
+## Simulation
+"""
+
+# ╔═╡ 8b9d1915-7326-45a1-8d0c-c72a5911e166
+md"""
+Setup:
+
+One layer of input neurons,
+one layer of dendrites,
+one layer of output neurons.
+
+Each input neuron will be connected to one dendrite of each output neuron.
+If we have ``N_i`` input neurons and ``N_o`` output neurons,
+this means we have ``N_d = N_i N_o`` dendrites.
+
+Input neuron ``i_k`` will be connected to dendrites
+```math
+\{d_{k + m N_i}\}_{m=0}^{N_o - 1}.
+```
+"""
+
+# ╔═╡ 3f139877-6bb6-47ad-967c-6cd86615a11b
+md"""
+### Auxiliary binary network
+"""
+
+# ╔═╡ 70b7bc36-42e4-4da7-85cd-0e508f261598
+md"""
+Load the pre-trained parameters:
+"""
+
+# ╔═╡ 8ef28b5e-e8d2-4ed2-9052-bd4ac4dbe3ed
+begin
+	data = let
+		datafile = Downloads.download("https://github.com/Antomek/IandH_data/raw/main/2Class_DendriteLayer_data.bson")
+		BSON.load(datafile, @__MODULE__)[:data]
+	end
+	params = let
+		modelfile = Downloads.download("https://github.com/Antomek/IandH_data/raw/main/2Class_DendriteLayer_parameters.bson")
+		BSON.load(modelfile, @__MODULE__)[:params]
+	end
+end
+
+# ╔═╡ a4affbe4-5a48-4aec-b2bc-48fe3a0878f8
+params2 = let
+	ps = []
+	for (W, b) in zip(params[1:2:length(params)], params[2:2:length(params)])
+		push!(ps, clamp.(W, 0f0, Inf32))
+		push!(ps, b)
+	end
+	ps
+end
+
+# ╔═╡ b36b7b63-a2bb-40f1-a840-3dc4c4dfbb6d
+function f(x)
+	x < 1f0 ? 0f0 : Float32(x)
+end
+
+# ╔═╡ 5e9c1b42-5b81-41dd-add9-8bd83fc9eb04
+params3 = let
+	ps = []
+	for (W, b) in zip(params[1:2:length(params)], params[2:2:length(params)])
+		push!(ps, f.(W))
+		push!(ps, b)
+	end
+	ps
+end
+
+# ╔═╡ 2c3f6f89-3ffa-4b9c-98e7-23d8b3db2d5f
+begin
+	accuracy(m, x, y) = mean(onecold(m(x)) .== onecold(y));
+	aux_BNN = build_binary_network2(params3)
+	aux_accuracy = accuracy(aux_BNN, data[:s], data[:Y])
+	aux_accuracy > 0.9 ? md"The auxiliary BNN works (i.e. accuracy > 90%);
+	accuracy as fraction correct is $aux_accuracy." : md"The auxiliary BNN doesn't work (i.e. accuracy < 90%); accuracy as fraction correct is $aux_accuracy."
+end
+
+# ╔═╡ fa3fa6d6-3ed0-43d9-8d19-a8e55f7b6285
+weightmats = [layer.W for layer in aux_BNN]
+
+# ╔═╡ bb875814-82e6-4463-8373-284aa28b1434
+md"""
+### Structure
+"""
+
+# ╔═╡ c7a2f21d-6c54-4d40-a4a1-25cfa2fe0fb3
+g, weights, vertex_numbers = create_network_graph(weightmats)
+
+# ╔═╡ 9b2f6e5f-6374-4b48-a54a-e8ed572e83ee
+md"""
+### Inputs
+"""
+
+# ╔═╡ f486858e-977c-426e-b70f-f6067e73a742
+begin
+	t0 = 20.
+	timejitter() = (rand() - 0.5) * 20
+	jitterlist = [timejitter() for i in 1:length(vertex_numbers[1])]
+end
+
+# ╔═╡ 71f8b7f2-d050-4114-8613-b07ae4ac8ac5
+inputvector = data[:s][:, 123]
+
+# ╔═╡ ec39579e-a135-4bd8-aeb4-342c6c5ba434
+md"""
+### Dynamics
+"""
+
+# ╔═╡ 4b5895b1-7825-4be8-9e55-1c88fd5608cf
+vertexlist = let 
+    list = [inputvector[i]!=0 ? input_soma!(t->10 * pulse(t, t0 + jitterlist[i])) : input_soma!(t->0.) for i in 1:length(vertex_numbers[1])]
+
+    for vertex_idxs in vertex_numbers[2:end]
+        for i in 1:length(vertex_idxs)
+            if vertex_idxs ∈ vertex_numbers[2:2:end]
+                push!(list, synapse!)
+            elseif vertex_idxs ∈ vertex_numbers[3:2:end]
+                push!(list, soma!)
+            end
+        end
+    end
+    list
+end
+
+# ╔═╡ 8acc3d8c-1dc8-44fb-8221-55e2f99211fe
+edgelist = let
+	edgelist = StaticEdge[]
+	for edge in edges(g)
+	    @assert any(src(edge) .∈ vertex_numbers) "Source is not in vertex list."
+	    @assert any(dst(edge) .∈ vertex_numbers) "Destination is not in vertex list."
+	    # If the source neuron is an input_soma!:
+	    if src(edge) ∈ vertex_numbers[1]
+	        push!(edgelist, soma_output!)
+	    # If source neuron is a synapse!:
+	    elseif src(edge) ∈ collect(Iterators.flatten(vertex_numbers[2:2:end]))
+	        push!(edgelist, electric_coupling!)
+	    # If source neuron is a soma!:
+	    elseif src(edge) ∈ collect(Iterators.flatten(vertex_numbers[3:2:end]))
+	        push!(edgelist, soma_output!)
+	    end
+	end
+	edgelist
+end
+
+# ╔═╡ 8dfdf67e-dcb3-42ba-baa6-acbaba6f7854
+network = network_dynamics(vertexlist, edgelist, g)
+
+# ╔═╡ 9436b3ab-abff-470d-bb58-c369a23d26c2
+md"""
+### Parameters
+"""
+
+# ╔═╡ 0e086922-8114-407a-8a04-0d50a9e7055f
+vertexparams = let
+    τ_m = .1 # Membrane time constant of soma
+    τ_s = .1 # Postsynaptic conductance time constant
+    τ_syn = .1 # Membrane time constant of synapse
+
+    # The array that will contain one array of parameters for each vertex
+    vertex_p = []
+    for i in 1:length(vertexlist)
+        vertex = vertexlist[i]
+        vertex_function_name = Symbol(vertex.f)
+        if vertex_function_name == :input_soma_function!
+            # Push the array of parameters that will be passed to input soma with vertexnumber i
+            push!(vertex_p, [τ_m, τ_s])
+        elseif vertex_function_name == :soma_function!
+            push!(vertex_p, [τ_m, τ_s])
+        elseif vertex_function_name == :synapse_function!
+            # Push the array of parameters that will be passed to synapse with vertexnumber i
+            push!(vertex_p, [τ_syn])
+        else
+            error("A vertex was encountered to which no parameters will be pushed.
+            The vertex function is $vertex_function_name.")
+        end
+    end
+    vertex_p
+end
+
+# ╔═╡ aa4cd6d3-fac5-41c4-a438-85de37cdded4
+edgeparams = let
+    # The array that will contain one array of parameterse for each edge
+    edge_p = []
+    for (edge, w) in zip(edges(g), weights)
+        vertex_source_function_name = Symbol(vertexlist[src(edge)].f)
+        # If source of edge is an input soma:
+        if vertex_source_function_name == :input_soma_function!
+            push!(edge_p, [w]) # ḡ_E, E_E of excitatory (E) synapse
+        elseif vertex_source_function_name == :soma_function!
+            push!(edge_p, [w]) # ḡ_E, E_E of excitatory (E) synapse
+        elseif vertex_source_function_name == :synapse_function!
+			w ≤ 0 ? error("Non-positive resistance, can cause instability") : nothing
+            push!(edge_p, [w]) # R (resistance) of synapse-soma current
+        else
+            error("You did not specify an edge parameter set for each source vertex.
+            Got $vertex_source_function_name.")
+        end
+    end
+    edge_p
+end
+
+# ╔═╡ a07044af-9ba7-4b31-aa9c-f81c1eb7f58c
+parameters = (vertexparams, edgeparams)
+
+# ╔═╡ 2fcf6619-762b-4fec-a95c-8ccca709e099
+md"""
+### Initial conditions
+"""
+
+# ╔═╡ ef5b4761-e582-4619-b33d-49803abf528e
+x0 = let
+    ICs = Vector{Float64}(undef, length(syms_containing(network, "_")))
+    # Initial conditions for soma variables:
+    ICs[idx_containing(network, :V_soma)] .= 0.0 # ICs for V_soma's
+    ICs[idx_containing(network, :s_soma)] .= 0.0 # ICs for s_soma's
+    ICs[idx_containing(network, :g_r_soma)] .= 0.0 # ICs for g_r_soma's
+	ICs[idx_containing(network, :T_soma)] .= 0.0 # ICs for g_r_soma's
+    # Initial conditions for synapse variables:
+    ICs[idx_containing(network, :V_syn)] .= 0.0 # ICs for V_synapse
+    ICs[idx_containing(network, :T_syn)] .= 0.0 # ICs for T_synapse
+    ICs
+end
+
+# ╔═╡ 40a0cc04-a251-4dad-ae6e-f6e6bc319a28
+md"""
+### Solving ODE
+"""
+
+# ╔═╡ ccc77e1f-1be3-42ae-a3ad-5cdacf4d6641
+tspan = (0.0, 30.0)
+
+# ╔═╡ 62245c49-c57f-431f-afc3-de73323732d4
+prob = ODEProblem(network, x0, tspan, parameters);
+
+# ╔═╡ d18e69fd-280a-4d21-8078-596dae0a5a72
+md"""
+### Callbacks (set threshold + plateau width)
+"""
+
+# ╔═╡ dfed945e-5da8-46f8-a30b-89a4779fc4c5
+begin
+	# Callback for spiking of somas:
+	spiking_callback = spiking_cb(network, :soma; θ = 1., T_refractory = 10.)
+	# Callbacks for maintaining plateau of synapses:
+	plateau_callback = plateau_cb(network, :syn; θ = 1., T = 20.)
+end
+
+# ╔═╡ 09ab54f8-6123-49fa-ac68-752c4c1e5a42
+sol = solve(prob, Tsit5();
+		reltol = 1e-2, abstol = 1e-2,
+        callback = CallbackSet(spiking_callback, plateau_callback)
+);
+
+# ╔═╡ e07a903e-53a5-474c-a7ab-c181d1795cd7
+md"""
+### Plotting solution
+"""
+
+# ╔═╡ a7718757-3f97-4dff-a5d4-f8f42fbcccb9
+# Contains a list of plots for each layer, which is in turn a list of plots for each variable
+# Variables are listed as V, s, g_r for the somas; V, T for the synapses
+# E.g. layer_plots[1][1] will be the plots of layer 1, variables 1 (i.e. the V's of the input soma's)
+layer_plots = let
+	plotlist = []
+	for layernum in 1:length(vertex_numbers)
+	    # If layer of somas: V, s, g_r plots, if synapses: V, T plots
+	    singlelayer_plots = layernum ∈ [2, 4] ? [Plots.plot(), Plots.plot()] : [Plots.plot(), Plots.plot(), Plots.plot(), Plots.plot()]
+	    for symbol_list in layer_symbols(vertex_numbers[layernum], network)
+	        for i in 1:length(symbol_list)
+	            Plots.plot!(singlelayer_plots[i], sol.t, transpose(sol[idx_of_symbol(network, symbol_list[i]), :]))
+	        end
+	    end
+	    push!(plotlist, singlelayer_plots)
+	end
+	plotlist
+end
+
+# ╔═╡ c474a7ad-8b3e-475e-90c5-44d5ae5d83bf
+lines(sol.t, vec(transpose(sol[idx_of_symbol(network, :V_syn_40), :])))
+
+# ╔═╡ c9856291-5312-4711-a17a-04d839ce13d8
+V_variables = [[filter_variables(syms, :V) for syms in layer_symbols(vertex_numbers[i], network)] for i in 1:((length(params)÷2)+1)]
+
+# ╔═╡ 5ac13be4-0630-4370-8be4-f9a5fae388a9
+layer_outputs = [spike_finder(network, sol, V_syms; threshold=.9) for V_syms in V_variables]
+
+# ╔═╡ a03f1b9f-18be-4005-bc27-7738d24bb7b5
+network_rasterplot2 = let
+    fig = Figure(resolution = (400, 500), 
+		grid = false, minorgrid=false)
+	ax = Axis(fig[1, 1],
+		xlabel = "Time (ms)",
+		ylabel = "Neuron #",
+		xgridvisible = false, ygridvisible = false,
+		yticklabelsize = 12)
+    xlims!(ax, tspan)
+	ax.yticks = collect(0:5:vertex_numbers[end][end])
+
+	colors = cgrad(:Dark2_5, 5, categorical = true)
+
+    for (i, spikedict) in enumerate(layer_outputs)
+        for (neuronsymbol, spiketimes) in spikedict
+            for spiketime in spiketimes
+                scatter!(ax, [spiketime], [number_from_symbol(neuronsymbol)],
+				color = colors[i],
+				marker = :rect,
+				markersize = 8,
+				strokewidth = .2)
+            end
+        end
+    end
+    fig
+end
+
+# ╔═╡ 58ca0d4d-0ead-4980-86e5-215eeee7dbde
+save("functional_raster_with_plateaus.pdf", network_rasterplot2, px_per_unit = 2)
+
+# ╔═╡ 3ca0da3b-006b-46ce-be81-8d7b5d1e672c
+md"""
+### Compare dynamics output with aux BNN
+"""
+
+# ╔═╡ cbd26557-29b6-47df-b2ee-a56b56c6b343
+BNN_outputs = let
+	aux_outputs = Flux.activations(aux_BNN[1:(length(aux_BNN))], inputvector)
+	f(x) = x ≤ 0.5 ? 0 : 1
+	[f.(output_vec) for output_vec in aux_outputs]
+end
+
+# ╔═╡ 1badfc83-fe6f-4271-8d7d-b4f778177e88
+target_spikes = (inputvector, BNN_outputs...)
+
+# ╔═╡ c95e66a7-fdd9-427b-9fcd-806cafcc5802
+indexed_spike_targets = [collect(vertex_numbers[i])[Bool.(target_spikes[i])] for i in 1:length(target_spikes)]
+
+# ╔═╡ cff4d44b-77c8-4565-a127-a046556f4148
+spiking_neurons = [number_from_symbol.(keys(output)) for output in layer_outputs]
+
+# ╔═╡ cd38b992-1adf-45e0-8e56-3636e001d8a9
+discrepancy = let
+	
+	missing_spike_list = [[] for i in 1:length(target_spikes)]
+	unwanted_spike_list = [[] for i in 1:length(target_spikes)]
+	for i in 1:length(target_spikes)
+		# Check if any needed spikes are missing from spiking output
+		for indexed_target_spike in indexed_spike_targets[i]
+			indexed_target_spike ∉ spiking_neurons[1:end][i] ? push!(missing_spike_list[i], indexed_target_spike) : nothing
+		end
+		# Check if neurons spike when they shouldn't have
+		for spike_output in spiking_neurons[1:end][i]
+			spike_output ∉ indexed_spike_targets[i] ? push!(unwanted_spike_list[i], spike_output) : nothing
+		end
+	end
+	(missing_spikes = missing_spike_list, unwanted_spikes = unwanted_spike_list)
+end
+
+# ╔═╡ 9c52e6c2-b72d-4ae1-9880-504e1de4c7ae
+<<<<<<< Updated upstream
+weightmats[1] * inputvector
+=======
+findall(x -> x==1, Θ.(weightmats[1] * inputvector .- 1f0)) .+ 13
+
+# ╔═╡ 6a9ef1ba-ebb5-4d0b-9da6-6e70eaabb7c8
+md"""
+## Check accuracy dendrite network
+"""
+
+# ╔═╡ 67825fee-9643-4794-af2f-d99945f3b9df
+function output_spikes(input, jitter)
+
+	_timejitter() = (rand() - 0.5) * jitter
+	_jitterlist = [_timejitter() for i in 1:length(vertex_numbers[1])]
+	
+	new_vertexlist = let 
+	    list = [input[i]!=0 ? input_soma!(t->10 * pulse(t, t0 + _jitterlist[i])) : input_soma!(t->0.) for i in 1:length(vertex_numbers[1])]
+	
+	    for vertex_idxs in vertex_numbers[2:end]
+	        for i in 1:length(vertex_idxs)
+	            if vertex_idxs ∈ vertex_numbers[2:2:end]
+	                push!(list, synapse!)
+	            elseif vertex_idxs ∈ vertex_numbers[3:2:end]
+	                push!(list, soma!)
+	            end
+	        end
+	    end
+	    list
+	end
+
+	new_network = network_dynamics(new_vertexlist, edgelist, g)
+	new_prob = ODEProblem(new_network, x0, tspan, parameters)
+	new_sol = solve(new_prob, Tsit5();
+		reltol = 1e-2, abstol = 1e-2,
+        callback = CallbackSet(spiking_callback, plateau_callback)
+	)
+	
+	new_layer_outputs = [spike_finder(new_network, new_sol, V_syms; threshold=.999) for V_syms in V_variables]
+
+	new_spiking_neurons = [number_from_symbol.(keys(output)) for output in new_layer_outputs]
+
+	return new_spiking_neurons
+end
+
+# ╔═╡ c66e3f6a-e7bd-4cdc-ac2b-c7da5b43fbb7
+function BNN_spikes(input)
+	new_BNN_outputs = let
+		aux_outputs = Flux.activations(aux_BNN[1:(length(aux_BNN))], input)
+		f(x) = x ≤ 0.5 ? 0 : 1
+		[f.(output_vec) for output_vec in aux_outputs]
+	end
+	new_target_spikes = (input, new_BNN_outputs...)
+	new_indexed_spike_targets = [collect(vertex_numbers[i])[Bool.(new_target_spikes[i])] for i in 1:length(new_target_spikes)]
+
+	return new_indexed_spike_targets
+end
+
+# ╔═╡ 65544c61-9718-4781-9c10-9c782db348c3
+function accuracy_check(input_batch, jitter)
+	score = 0
+	for input in eachcol(input_batch)
+		output_spikes(input, jitter)[3] == BNN_spikes(input)[3] ? score+=1 : nothing
+	end
+	score = score / size(input_batch, 2)
+	return score
+end
+
+# ╔═╡ b3ad5209-65f4-4fac-9295-0878c5ecf164
+accuracy_check(data[:s], 1.)
+
+# ╔═╡ 679d4ead-b7ec-4ad0-87c3-0e8567066b27
+md"""
+Accuracies:
+
+| - | ``T_{plateau} = 1ms`` | ``T_{plateau} = 30ms `` |
+| --- | --- | --- |
+| ``\tau_{jitter} = 0ms`` | 100% | 100% |
+| ``\tau_{jitter} = 30ms`` | 43% | 100% |
+"""
+
+# ╔═╡ b80d7e0d-46b9-4e8b-a398-e783cc4c927f
+jitters = [1. 2. 5. 10. 20.]
+
+# ╔═╡ 7ebd40c0-1220-4bbe-b2a7-aba9c53daadd
+accuracy_sweep = let
+	scores = Float64[]
+	for jitter in jitters
+		push!(scores, accuracy_check(data[:s], jitter))
+	end
+	scores
+end
+
+# ╔═╡ 0a688a89-845a-41e6-b6ca-763b3204a5fe
+# begin
+# 	bson("Accuracies_with_plateaus.bson", outcome = (scores = accuracy_sweep, jitters = jitters))
+# end
+
+# ╔═╡ 8cb10f8a-ff15-4ee1-8a34-35bd41104e92
+begin
+	acc1 = let
+		accfile = Downloads.download("https://github.com/Antomek/IandH_data/raw/main/Accuracies_without_plateaus.bson")
+		BSON.load(accfile, @__MODULE__)[:outcome]
+	end
+end
+
+# ╔═╡ b4ad7f4a-b208-4ae0-af1c-42f406487187
+begin
+	acc2 = let
+		accfile = Downloads.download("https://github.com/Antomek/IandH_data/raw/main/Accuracies_with_plateaus.bson")
+		BSON.load(accfile, @__MODULE__)[:outcome]
+	end
+end
+
+# ╔═╡ 620a31cb-d488-4f8e-a753-2079f5c41d31
+accplot = let
+	newfig = Figure(resolution = (600, 500))
+
+	ax1 = Axis(newfig[1,1],
+		backgroundcolor = :transparent,
+		xgridcolor = :transparent,
+		ygridcolor = :transparent,
+		rightspinevisible = false,
+		topspinevisible = false,
+		xlabel = L"\tau",
+		ylabel = "Accuracy (% correct)"
+	)
+
+	ax1.xticks = vec(acc1[:jitters])
+	ylims!(ax1, (0.0, 100.0))
+	ax1.yticks = 0:20:100
+
+	lines!(ax1, vec(acc1[:jitters]), vec(acc1[:scores]) .* 100, color = :black, linestyle = :dash, label = "without plateaus")
+	lines!(ax1, vec(acc2[:jitters]), vec(acc2[:scores]) .* 100, color = :black, label = "with plateaus")
+
+	newfig[1,2] = Legend(newfig[1,1], ax1, framevisible=false)
+	
+	newfig
+end
+>>>>>>> Stashed changes
+
+# ╔═╡ Cell order:
+# ╠═208e9048-b417-11ec-20b8-e5d2918eb4e8
+# ╠═b16c7066-00fd-479b-a1c8-8ef471fe47c0
+# ╠═8f2283a7-40de-468e-b265-160494c959d1
+# ╟─9760057e-d4be-4873-8afd-4aa6ba4ae24c
+# ╟─2a58d6f6-298d-46f1-a8af-471a4fed7dfd
+# ╟─5bd69110-b1f3-4c9f-8751-23951d131c0c
+# ╟─00f7f929-42d0-4a5a-9932-535c50418716
+# ╟─38a878c3-f968-4780-841a-0127c29921f1
+# ╟─fc89918c-6c57-45c6-9e0f-2d0293e991d2
+# ╟─959f9c7d-86d4-443b-ac7b-4d03b9333e59
+# ╟─ae73a4b7-99df-4f36-98d3-6240976b2a63
+# ╟─9c6c4ebb-457e-423e-a11b-e983ddaa0590
+# ╠═4c29cf96-87c2-4291-a314-9a7308f2ac96
+# ╠═9ae286be-2c0f-46a3-a227-a635e78c6032
+# ╠═a8722be9-9c75-40a6-a4f7-97b5aa50c283
+# ╠═4b84537d-88e7-4d63-9221-91be9625b091
+# ╠═344cd42b-04fe-4b8c-902f-fb39c15c8f07
+# ╠═49c12e95-90b4-4173-b779-28b4d330efe4
+# ╠═a986619a-23b0-4387-b3e9-6935a1d1bcb3
+# ╠═a32a1f57-e309-41ff-83a3-5033534eb147
+# ╟─496b9f6e-16a4-49ac-a101-316643540563
+# ╠═bd88fa84-8a5a-41dc-89d6-a69d8761234c
+# ╠═33c9c2b6-9868-45e1-a1ec-ff908d4b6c33
+# ╠═ddbd3a49-fae9-468d-a8f1-3dc8fb11bca2
+# ╟─b1b5dd8a-1a11-4a01-b49a-976c64b8a4e9
+# ╠═c4efbc74-13c8-472c-9921-127acb527819
+# ╟─a9496dd8-ddcb-47f6-8b4a-2dc824fda77c
+# ╠═387c16d8-c625-4b6b-9e1f-b6a11379d5e8
+# ╟─73006ac2-13be-4eed-9f53-d09d9f67ae51
+# ╟─203d730d-c2d5-468e-82cd-485f22111079
+# ╟─8b9d1915-7326-45a1-8d0c-c72a5911e166
+# ╟─3f139877-6bb6-47ad-967c-6cd86615a11b
+# ╟─70b7bc36-42e4-4da7-85cd-0e508f261598
+# ╠═8ef28b5e-e8d2-4ed2-9052-bd4ac4dbe3ed
+# ╠═a4affbe4-5a48-4aec-b2bc-48fe3a0878f8
+# ╠═b36b7b63-a2bb-40f1-a840-3dc4c4dfbb6d
+# ╠═5e9c1b42-5b81-41dd-add9-8bd83fc9eb04
+# ╠═2c3f6f89-3ffa-4b9c-98e7-23d8b3db2d5f
+# ╠═fa3fa6d6-3ed0-43d9-8d19-a8e55f7b6285
+# ╟─bb875814-82e6-4463-8373-284aa28b1434
+# ╠═c7a2f21d-6c54-4d40-a4a1-25cfa2fe0fb3
+# ╟─9b2f6e5f-6374-4b48-a54a-e8ed572e83ee
+# ╠═f486858e-977c-426e-b70f-f6067e73a742
+# ╠═71f8b7f2-d050-4114-8613-b07ae4ac8ac5
+# ╟─ec39579e-a135-4bd8-aeb4-342c6c5ba434
+<<<<<<< Updated upstream
+# ╟─4b5895b1-7825-4be8-9e55-1c88fd5608cf
+# ╟─8acc3d8c-1dc8-44fb-8221-55e2f99211fe
+=======
+# ╠═4b5895b1-7825-4be8-9e55-1c88fd5608cf
+# ╠═8acc3d8c-1dc8-44fb-8221-55e2f99211fe
+>>>>>>> Stashed changes
+# ╠═8dfdf67e-dcb3-42ba-baa6-acbaba6f7854
+# ╟─9436b3ab-abff-470d-bb58-c369a23d26c2
+# ╟─0e086922-8114-407a-8a04-0d50a9e7055f
+# ╠═aa4cd6d3-fac5-41c4-a438-85de37cdded4
+# ╠═a07044af-9ba7-4b31-aa9c-f81c1eb7f58c
+# ╟─2fcf6619-762b-4fec-a95c-8ccca709e099
+# ╠═ef5b4761-e582-4619-b33d-49803abf528e
+# ╟─40a0cc04-a251-4dad-ae6e-f6e6bc319a28
+# ╠═ccc77e1f-1be3-42ae-a3ad-5cdacf4d6641
+# ╠═62245c49-c57f-431f-afc3-de73323732d4
+# ╟─d18e69fd-280a-4d21-8078-596dae0a5a72
+# ╠═dfed945e-5da8-46f8-a30b-89a4779fc4c5
+# ╠═09ab54f8-6123-49fa-ac68-752c4c1e5a42
+# ╟─e07a903e-53a5-474c-a7ab-c181d1795cd7
+# ╟─a7718757-3f97-4dff-a5d4-f8f42fbcccb9
+# ╠═c474a7ad-8b3e-475e-90c5-44d5ae5d83bf
+# ╠═c9856291-5312-4711-a17a-04d839ce13d8
+# ╠═5ac13be4-0630-4370-8be4-f9a5fae388a9
+# ╠═a03f1b9f-18be-4005-bc27-7738d24bb7b5
+# ╠═58ca0d4d-0ead-4980-86e5-215eeee7dbde
+# ╟─3ca0da3b-006b-46ce-be81-8d7b5d1e672c
+# ╠═cbd26557-29b6-47df-b2ee-a56b56c6b343
+# ╠═1badfc83-fe6f-4271-8d7d-b4f778177e88
+# ╠═c95e66a7-fdd9-427b-9fcd-806cafcc5802
+# ╠═cff4d44b-77c8-4565-a127-a046556f4148
+# ╟─cd38b992-1adf-45e0-8e56-3636e001d8a9
+# ╠═9c52e6c2-b72d-4ae1-9880-504e1de4c7ae
+<<<<<<< Updated upstream
+=======
+# ╟─6a9ef1ba-ebb5-4d0b-9da6-6e70eaabb7c8
+# ╠═67825fee-9643-4794-af2f-d99945f3b9df
+# ╠═c66e3f6a-e7bd-4cdc-ac2b-c7da5b43fbb7
+# ╠═65544c61-9718-4781-9c10-9c782db348c3
+# ╠═b3ad5209-65f4-4fac-9295-0878c5ecf164
+# ╟─679d4ead-b7ec-4ad0-87c3-0e8567066b27
+# ╠═b80d7e0d-46b9-4e8b-a398-e783cc4c927f
+# ╠═7ebd40c0-1220-4bbe-b2a7-aba9c53daadd
+# ╠═0a688a89-845a-41e6-b6ca-763b3204a5fe
+# ╠═8cb10f8a-ff15-4ee1-8a34-35bd41104e92
+# ╠═b4ad7f4a-b208-4ae0-af1c-42f406487187
+# ╠═620a31cb-d488-4f8e-a753-2079f5c41d31
+>>>>>>> Stashed changes
